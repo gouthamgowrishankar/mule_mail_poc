@@ -25,6 +25,7 @@ local.properties
 .loadpath
 .project
 .classpath
+src/main/resources/env.properties
 
 # External tool builders
 .externalToolBuilders/
@@ -45,3 +46,4 @@ target/
 .mule/
 .DS_Store
 velocity.log
+.tooling-project
