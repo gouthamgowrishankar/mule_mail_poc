@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<email:imap-config name="Email_IMAP" doc:name="Email IMAP" doc:id="c51ef3be-1b71-4c04-95dc-165f3cb6925c" >
+		<email:imaps-connection host="${imap.host}" user="${userName}" password="${password}" port="${imap.port}">
+			<tls:context >
+				<tls:trust-store insecure="true" />
+			</tls:context>
+		</email:imaps-connection>
+	</email:imap-config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="21052985-6c3a-4cdc-98db-6d1ec1f8de1d" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="b4efe2be-5b67-4204-b370-e8e43aa4bfdf" >
+		<email:smtps-connection host="${smtp.host}" user="${userName}" password="${password}" port="${smtp.port}">
+			<tls:context >
+				<tls:trust-store insecure="true" />
+			</tls:context>
+		</email:smtps-connection>
+	</email:smtp-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="34a9d003-f7c8-4469-87fa-604bf723073c" file="env.properties" />
+	<flow name="mailFlow" doc:id="bd273511-fac2-4d06-bc54-e222e0d89d07" >
+		<http:listener doc:name="Listener" doc:id="2678301f-26c5-4012-8506-fe4a79d0569d" config-ref="HTTP_Listener_config" path="/listmail"/>
+		<email:list-imap doc:name="List - IMAP" doc:id="293e73f5-39ee-41e9-851a-84de51826cf6" config-ref="Email_IMAP" limit="10"/>
+		<ee:transform doc:name="Transform Message" doc:id="8f768bfe-33bd-46ce-8323-9b2bcb29699f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="mailFlow2" doc:id="10fc9c42-1e49-41e1-8a60-3067659554e9" >
+		<http:listener doc:name="Listener" doc:id="805188c7-162c-44da-9feb-256eacf87e65" config-ref="HTTP_Listener_config" path="/sendmail"/>
+		<email:send doc:name="Send" doc:id="af8f9128-7654-4e27-9a76-7b5d4371c432" config-ref="Email_SMTP" fromAddress="gouthamgowrishankar18@gmail.com" subject="#[payload.subject]">
+			<email:to-addresses >
+				<email:to-address value="gouthamgowrishankar789@gmail.com" />
+			</email:to-addresses>
+			<email:body contentTransferEncoding="Quoted-Printable">
+				<email:content ><![CDATA[#[payload.message]]]></email:content>
+			</email:body>
+		</email:send>
+		<ee:transform doc:name="Transform Message" doc:id="903aedac-62ff-4d7b-9ae6-ef3eacbd2816" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="mailFlow1" doc:id="b48827fd-a53b-404b-aafa-7b91908f7ceb" >
+		<email:listener-imap doc:name="On New Email - IMAP" doc:id="a11df405-39d9-45d9-9773-8db189e1a3e0" config-ref="Email_IMAP">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+			<email:imap-matcher />
+		</email:listener-imap>
+		<logger level="INFO" doc:name="Logger" doc:id="86bc3995-0dad-4dbf-94bf-689745b2ad2d" message="#[payload]"/>
+	</flow>
+</mule>
